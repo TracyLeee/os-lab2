@@ -37,7 +37,8 @@ The spinlock API is defined in `spinlock.h` and has three functions:
 2. `spinlock_lock`: Allows to lock a spinlock. As seen in class, you will use the `__sync_val_compare_and_swap` function that allows for a given target to exchange the expected value with the new one if and only if the actual target value is equal to the expected one. The atomic intrinsic returns the actual value read at target.
 3. `spinlock_unlock`: unlocks a spinlock. Once again, you can make it atomic by using `__sync_val_compare_and_swap`.
 
-*Note: If the thread tries to unlock the spinlock which is already unlocked, you should put assert in spinlock to fetch it.*
+> Note: Trying to unlock a spinlock which is already unlocked should terminate the program. You can use an `assert(some condition)` statement to implement this.
+  Beware of potential data-races: implementations which first-check the value, then change it with a separate statement might encounter a TOCTOU (Time-of-check-to-time-of-use) bug.
 
 Look at the `increment_global_spinlock` function in `main.c`. Multiple threads are created by `try_locks` each running this function. The operation in used to increment the global variable is not atomic, so the function uses a spinlock to make sure that only one thread is allowed to increment at a time. Test this!
 
@@ -61,7 +62,7 @@ Once again, we have three functions to implement, for which prototypes are defin
 2. `mutex_lock`: Locks a mutex. *The mutex's spinlock is used for mutual exclusion on the mutex metadata/state.* Once the state is locked, you should try to atomically set the value of owner to the current thread's tid, expecting `DEFAULT_TARGET` as an initial value. For this, use `__sync_val_compare_and_swap` or `__sync_bool_compare_and_swap`. If that fails, it means that the mutex is held by someone else. You therefore need to add yourself to the mutex blocked list, and call `cond_wait` to atomically block and release the spinlock. **YOU DO NOT NEED TO TOUCH THE CURRENT THREAD'S STATE**, this is handled by `cond_wait`. Remember to read the comment for `cond_wait`, this function does not reacquire the lock when it returns, so be careful about the lines of code that you place after it.
 3. `mutex_unlock`: Unlocks a mutex. Once again, the spinlock can be used to ensure mutual exclusion on the mutex state. If the list of blocked threads is empty, simply atomically set the value of owner to `DEFAULT_TARGET`. If this is not the case, you need to pop the head of the blocked list, change the owner to this thread's tid, and call `tsafe_unblock_thread`. This function simply fixes the state of the thread before rescheduling it (you should go and read the function's code, it might be helpful later on). 
 
-*Note: In case thread tries to unlock the mutex that it does not own, you should put assert in mutex_unlock to fetch it.*
+> Note: Trying to unlock a mutex which is already unlocked should terminate the program. You can use an `assert(some condition)` statement to implement this.
 
 Look at the function `test_global_mutex` in `main.c`. It contains a critical section and tracks how many threads are in the critical section by atomically incrementing a global variable on entry, and decrementing it on exit. Within the critical section, the threads busy-wait by incrementing a local variable to simulate the time spent doing useful work. With proper implementation of mutex, only one thread should be in the critical section at a time. If two or more threads enter the critical section, the value read by `__sync_fetch_and_add` can be non-zero, and the thread will print an error message. Run `main` and see if your implementation works.
 
