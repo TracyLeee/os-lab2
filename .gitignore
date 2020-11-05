@@ -1,0 +1,10 @@
+*.[0ao]
+*.so
+*~
+.vscode/
+done/main
+done/tests
+done/test_threading
+done/test_scheduler
+done/test_malloc
+done/test_locks
